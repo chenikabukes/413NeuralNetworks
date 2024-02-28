@@ -1,4 +1,4 @@
-# RNA Sequencing Model
+# Ribonanza RNA Folding
 
 ## Project Overview
 
@@ -8,7 +8,7 @@ The challenge is to predict RNA chemical reactivity, a crucial step for identify
 ### Dataset
 The project utilizes a dataset from Stanford, featuring 1,118,513 RNA sequences and their reactivities. The training data consists of 821,840 sequence profiles, focusing on RNA sequences and their chemical reactivity measures. The test set contains sequences of varying lengths to evaluate the model's generalization capabilities.
 
-[Stanford Ribonanza RNA Folding Dataset](https://www.kaggle.com/datasets/ribonanza/rna-folding)
+[Stanford Ribonanza RNA Folding Dataset](https://www.kaggle.com/competitions/stanford-ribonanza-rna-folding)
 
 ### Prior Work
 - **Nucleic Transformer:** Utilizes 1D convolutions and self-attention for DNA sequence classification. [(He et al., 2023)](https://www.nature.com/articles/s41598-023-00000-1)
@@ -22,8 +22,6 @@ We plan to compare three models, including a novel hybrid CNN-Transformer model,
 1. **Baseline Model:** RNA Starter by Stanford.
 2. **Proposed Model 1:** Vision Transformers (ViTs).
 3. **Proposed Model 2:** CNN with 1D convolutions + Transformers.
-
-![CNN-Transformer Model Diagram](https://example.com/cnn-transformer-diagram.png)
 
 *Figure 1. CNN-Transformer Model Diagram*
 
