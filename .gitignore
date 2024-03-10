@@ -1,8 +1,16 @@
+# Ignore everything in the dataset/ folder
+dataset/*
+
+# But do not ignore get_data.py
+!dataset/get_data.py
+
+model_weights/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-
+dataset
 # C extensions
 *.so
 
