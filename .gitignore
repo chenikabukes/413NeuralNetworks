@@ -1,8 +1,4 @@
-# Ignore everything in the dataset/ folder
-dataset/*
-
-# But do not ignore get_data.py
-!dataset/get_data.py
+dataset/
 
 model_weights/
 

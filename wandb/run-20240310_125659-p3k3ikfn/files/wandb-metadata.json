@@ -1,0 +1,92 @@
+{
+    "os": "Linux-5.15.0-91-generic-x86_64-with-glibc2.35",
+    "python": "3.10.13",
+    "heartbeatAt": "2024-03-10T16:57:00.114223",
+    "startedAt": "2024-03-10T16:56:59.530475",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--epoch",
+        "1",
+        "--wandb"
+    ],
+    "state": "running",
+    "program": "/h/u6/c4/05/zha11021/CSC413/413NeuralNetworks/train.py",
+    "codePathLocal": "train.py",
+    "codePath": "train.py",
+    "git": {
+        "remote": "git@github.com:chenikabukes/413NeuralNetworks.git",
+        "commit": "6fcbc37a9b82c6fc35f6ab295382e82cb41c1584"
+    },
+    "email": "xiaozhang20030215@gmail.com",
+    "root": "/h/u6/c4/05/zha11021/CSC413/413NeuralNetworks",
+    "host": "coral02",
+    "username": "zha11021",
+    "executable": "/h/u6/c4/05/zha11021/CSC413/413NeuralNetworks/venv/bin/python3",
+    "cpu_count": 8,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 1451.064375,
+        "min": 800.0,
+        "max": 3200.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 1944.019,
+            "min": 800.0,
+            "max": 3200.0
+        },
+        {
+            "current": 1423.686,
+            "min": 800.0,
+            "max": 3200.0
+        },
+        {
+            "current": 906.181,
+            "min": 800.0,
+            "max": 3200.0
+        },
+        {
+            "current": 800.0,
+            "min": 800.0,
+            "max": 3200.0
+        },
+        {
+            "current": 800.0,
+            "min": 800.0,
+            "max": 3200.0
+        },
+        {
+            "current": 800.0,
+            "min": 800.0,
+            "max": 3200.0
+        },
+        {
+            "current": 800.0,
+            "min": 800.0,
+            "max": 3200.0
+        },
+        {
+            "current": 800.0,
+            "min": 800.0,
+            "max": 3200.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 85.95492553710938,
+            "used": 61.61626434326172
+        }
+    },
+    "gpu": "NVIDIA RTX A4000",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA RTX A4000",
+            "memory_total": 17171480576
+        }
+    ],
+    "memory": {
+        "total": 92.98109436035156
+    }
+}

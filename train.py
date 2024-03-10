@@ -1,5 +1,8 @@
+import argparse
 import torch
 from fastai.vision.all import *
+from fastai.callback.wandb import *
+import fastai
 import pandas as pd
 import os, gc
 import numpy as np
@@ -10,47 +13,30 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-
-def flatten(o):
-    "Concatenate all collections and items as a generator"
-    for item in o:
-        if isinstance(o, dict): yield o[item]; continue
-        elif isinstance(item, str): yield item; continue
-        try: yield from flatten(item)
-        except TypeError: yield item
-
 from torch.cuda.amp import GradScaler, autocast
-@delegates(GradScaler)
-class MixedPrecision(Callback):
-    "Mixed precision training using Pytorch's `autocast` and `GradScaler`"
-    order = 10
-    def __init__(self, **kwargs): self.kwargs = kwargs
-    def before_fit(self):
-        self.autocast,self.learn.scaler,self.scales = autocast(),GradScaler(**self.kwargs),L()
-    def before_batch(self): self.autocast.__enter__()
-    def after_pred(self):
-        if next(flatten(self.pred)).dtype==torch.float16: self.learn.pred = to_float(self.pred)
-    def after_loss(self): self.autocast.__exit__(None, None, None)
-    def before_backward(self): self.learn.loss_grad = self.scaler.scale(self.loss_grad)
-    def before_step(self):
-        "Use `self` as a fake optimizer. `self.skipped` will be set to True `after_step` if gradients overflow. "
-        self.skipped=True
-        self.scaler.step(self)
-        if self.skipped: raise CancelStepException()
-        self.scales.append(self.scaler.get_scale())
-    def after_step(self): self.learn.scaler.update()
+import wandb
+from torch.optim import Adam
+from datetime import datetime
+from tqdm import tqdm
 
-    @property
-    def param_groups(self):
-        "Pretend to be an optimizer for `GradScaler`"
-        return self.opt.param_groups
-    def step(self, *args, **kwargs):
-        "Fake optimizer step to detect whether this batch was skipped from `GradScaler`"
-        self.skipped=False
-    def after_fit(self): self.autocast,self.learn.scaler,self.scales = None,None,None
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description='RNA Model Training with optional W&B Logging')
+parser.add_argument('--wandb', action='store_true', help='Enable logging to Weights & Biases')
+parser.add_argument('--quick_start', action='store_true', help='Use quick start dataset')
+parser.add_argument('--epochs', type=int, default=32, help='Number of training epochs')
+parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate')
+args = parser.parse_args()
 
-import fastai
-fastai.callback.fp16.MixedPrecision = MixedPrecision
+# W&B Integration
+if args.wandb:
+    wandb.login()
+    wandb.init(project='RNA_Translation', entity='rna-fold')
+    wandb.config.update({"epochs": args.epochs, "lr": args.lr})
+
+# Use the appropriate dataset file based on -quick_start flag
+dataset_file = 'train_data_QUICK_START' if args.quick_start else 'train_data'
+print(f"Using dataset: {dataset_file}")
+
 
 def seed_everything(seed):
     random.seed(seed)
@@ -61,15 +47,18 @@ def seed_everything(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
 
-fname = 'example0'
-PATH = '/h/u6/c4/05/zha11021/CSC413/413NeuralNetworks/dataset/'
-WEIGHT_OUT = '/h/u6/c4/05/zha11021/CSC413/413NeuralNetworks/model_weights/'
+fname = 'starter_model'
+current_time = datetime.now().strftime('%Y%m%d_%H:%M')
+PATH = '/h/u6/c4/05/zha11021/CSC413/413NeuralNetworks/dataset'
+OUT = '/h/u6/c4/05/zha11021/CSC413/413NeuralNetworks/model_weights'
+SEED = 1337
+seed_everything(SEED)
+os.makedirs(OUT, exist_ok=True)
+model_save_path = os.path.join(OUT, f'{fname}_{current_time}.pth')
 bs = 256
-num_workers = 2
-SEED = 2023
+num_workers = 1 if True else max(1, os.cpu_count() - 1)
 nfolds = 4
 device = f'cuda:{torch.cuda.current_device()}' if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-
 class RNA_Dataset(Dataset):
     def __init__(self, df, mode='train', seed=2023, fold=0, nfolds=4,
                  mask_only=False, **kwargs):
@@ -198,9 +187,12 @@ class RNA_Model(nn.Module):
         super().__init__()
         self.emb = nn.Embedding(4,dim)
         self.pos_enc = SinusoidalPosEmb(dim)
-        self.transformer = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(d_model=dim, nhead=dim//head_size, dim_feedforward=4*dim,
-                dropout=0.1, activation=nn.GELU(), batch_first=True, norm_first=True), depth)
+        encoder_layers = nn.ModuleList([nn.TransformerEncoderLayer(d_model=dim, nhead=dim//head_size,
+                                                                   dim_feedforward=4*dim, dropout=0.1,
+                                                                   activation='gelu', batch_first=True,
+                                                                   norm_first=True) for _ in range(depth)])
+        self.transformer = nn.TransformerEncoder(encoder_layer=encoder_layers[0], num_layers=depth)
+
         self.proj_out = nn.Linear(dim,2)
 
     def forward(self, x0):
@@ -219,7 +211,7 @@ class RNA_Model(nn.Module):
 
         return x
 
-def loss(pred,target):
+def custom_loss(pred,target):
     p = pred[target['mask'][:,:pred.shape[1]]]
     y = target['react'][target['mask']].clip(0,1)
     loss = F.l1_loss(p, y, reduction='none')
@@ -227,65 +219,99 @@ def loss(pred,target):
 
     return loss
 
-class MAE(Metric):
-    def __init__(self):
-        self.reset()
+parquet_file = os.path.join(PATH, f"{dataset_file}.parquet")
 
-    def reset(self):
-        self.x,self.y = [],[]
+print("Read data start")
+if os.path.exists(parquet_file):
+    df = pd.read_parquet(parquet_file)
+else:
+    csv_file = os.path.join(PATH, f"{dataset_file}.csv")
+    df = pd.read_csv(csv_file)
+    for col in df.columns:
+        if df[col].dtype == np.float64:
+            df[col] = df[col].astype(np.float32)
+    # Drop duplicates based on "sequence_id", "experiment_type"
+    df = df.drop_duplicates(subset=["sequence_id", "experiment_type"])
+    # Sort the DataFrame based on "sequence_id" and "experiment_type"
+    df = df.sort_values(by=["sequence_id", "experiment_type"])
+    df.to_parquet(parquet_file)
+print("Read data end")
 
-    def accumulate(self, learn):
-        x = learn.pred[learn.y['mask'][:,:learn.pred.shape[1]]]
-        y = learn.y['react'][learn.y['mask']].clip(0,1)
-        self.x.append(x)
-        self.y.append(y)
+fold = 0
+ds_train = RNA_Dataset(df, mode='train', fold=fold, nfolds=nfolds)
+ds_train_len = RNA_Dataset(df, mode='train', fold=fold,
+            nfolds=nfolds, mask_only=True)
+sampler_train = torch.utils.data.RandomSampler(ds_train_len)
+len_sampler_train = LenMatchBatchSampler(sampler_train, batch_size=bs,
+            drop_last=True)
+dl_train = DeviceDataLoader(torch.utils.data.DataLoader(ds_train,
+            batch_sampler=len_sampler_train, num_workers=num_workers,
+            persistent_workers=True), device)
 
-    @property
-    def value(self):
-        x,y = torch.cat(self.x,0),torch.cat(self.y,0)
-        loss = F.l1_loss(x, y, reduction='none')
-        loss = loss[~torch.isnan(loss)].mean()
-        return loss
+ds_val = RNA_Dataset(df, mode='eval', fold=fold, nfolds=nfolds)
+ds_val_len = RNA_Dataset(df, mode='eval', fold=fold, nfolds=nfolds,
+            mask_only=True)
+sampler_val = torch.utils.data.SequentialSampler(ds_val_len)
+len_sampler_val = LenMatchBatchSampler(sampler_val, batch_size=bs,
+            drop_last=False)
+dl_val= DeviceDataLoader(torch.utils.data.DataLoader(ds_val,
+            batch_sampler=len_sampler_val, num_workers=num_workers), device)
 
+train_loader = DataLoader(ds_train, batch_sampler=len_sampler_train, num_workers=num_workers, pin_memory=True)
+val_loader = DataLoader(ds_val, batch_sampler=len_sampler_val, num_workers=num_workers, pin_memory=True)
 
-seed_everything(SEED)
-os.makedirs(OUT, exist_ok=True)
-print("DF start")
-df = pd.read_csv(os.path.join(PATH,'train_data.csv'))
-for col in df.columns:
-    if df[col].dtype == np.float64:
-        df[col] = df[col].astype(np.float32)
-df.to_parquet('train_data.parquet')
-print("DF end")
+model = RNA_Model().to(device)
+optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=0.05)
+scaler = GradScaler()
+best_val_loss = float('inf')
+gc.collect()
+for epoch in range(1, args.epochs+1):
+    model.train()
+    train_loss_accumulator = 0.0
+    num_batches_train = 0
 
-for fold in [0]: # running multiple folds at kaggle may cause OOM
-    ds_train = RNA_Dataset(df, mode='train', fold=fold, nfolds=nfolds)
-    ds_train_len = RNA_Dataset(df, mode='train', fold=fold,
-                nfolds=nfolds, mask_only=True)
-    sampler_train = torch.utils.data.RandomSampler(ds_train_len)
-    len_sampler_train = LenMatchBatchSampler(sampler_train, batch_size=bs,
-                drop_last=True)
-    dl_train = DeviceDataLoader(torch.utils.data.DataLoader(ds_train,
-                batch_sampler=len_sampler_train, num_workers=num_workers,
-                persistent_workers=True), device)
+    for batch in tqdm(train_loader, desc=f"Epoch {epoch}/{args.epochs} Training", leave=False):
+        inputs, targets = to_device(batch, device)  # Ensure this function correctly moves your batch to the device
+        optimizer.zero_grad()
 
-    ds_val = RNA_Dataset(df, mode='eval', fold=fold, nfolds=nfolds)
-    ds_val_len = RNA_Dataset(df, mode='eval', fold=fold, nfolds=nfolds,
-               mask_only=True)
-    sampler_val = torch.utils.data.SequentialSampler(ds_val_len)
-    len_sampler_val = LenMatchBatchSampler(sampler_val, batch_size=bs,
-               drop_last=False)
-    dl_val= DeviceDataLoader(torch.utils.data.DataLoader(ds_val,
-               batch_sampler=len_sampler_val, num_workers=num_workers), device)
-    gc.collect()
+        with autocast():
+            predictions = model(inputs)
+            loss = custom_loss(predictions, targets)
 
-    data = DataLoaders(dl_train,dl_val)
-    model = RNA_Model()
-    model = model.to(device)
-    learn = Learner(data, model, loss_func=loss,cbs=[GradientClip(3.0)],
-                metrics=[MAE()]).to_fp16()
-    #fp16 doesn't help at P100 but gives x1.6-1.8 speedup at modern hardware
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
 
-    learn.fit_one_cycle(32, lr_max=5e-4, wd=0.05, pct_start=0.02)
-    torch.save(learn.model.state_dict(),os.path.join(WEIGHT_OUT,f'{fname}_{fold}.pth'))
-    gc.collect()
+        train_loss_accumulator += loss.item()
+        num_batches_train += 1
+
+    average_train_loss = train_loss_accumulator / num_batches_train
+
+    # Validation loop
+    val_loss_accumulator = 0.0
+    num_batches_val = 0
+
+    model.eval()
+    with torch.no_grad():
+        for batch in tqdm(val_loader, desc=f"Epoch {epoch}/{args.epochs} Validation", leave=False):
+            inputs, targets = to_device(batch, device)
+            with autocast():
+                predictions = model(inputs)
+                val_loss = custom_loss(predictions, targets)
+
+            val_loss_accumulator += val_loss.item()
+            num_batches_val += 1
+
+    average_val_loss = val_loss_accumulator / num_batches_val
+
+    if args.wandb:
+        wandb.log({"epoch": epoch, "train_loss": average_train_loss, "val_loss": average_val_loss, "lr_0": optimizer.param_groups[0]['lr']})
+
+    # Checkpoint saving logic
+    if average_val_loss < best_val_loss:
+        best_val_loss = average_val_loss
+        torch.save(model.state_dict(), model_save_path)
+        print(f"Epoch {epoch}: New best model saved with val_loss: {average_val_loss}")
+
+    print(f"Epoch {epoch}: Train Loss: {average_train_loss}, Val Loss: {average_val_loss}")
+gc.collect()
