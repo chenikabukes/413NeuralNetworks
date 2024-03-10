@@ -1,8 +1,5 @@
 import argparse
 import torch
-from fastai.vision.all import *
-from fastai.callback.wandb import *
-import fastai
 import pandas as pd
 import os, gc
 import numpy as np
