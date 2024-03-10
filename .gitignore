@@ -4,7 +4,7 @@ dataset/*
 # But do not ignore get_data.py
 !dataset/get_data.py
 
-model_weights/*
+model_weights/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
