@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
-
+# THIS FILE IS NEVER TESTED YET
 class NucleicTransformer(nn.Module):
     def __init__(self, ntoken, ninp, nhead, nhid, nlayers, nkmers, dropout=0.5):
         super(NucleicTransformer, self).__init__()
