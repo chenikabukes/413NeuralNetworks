@@ -16,6 +16,7 @@ from tqdm import tqdm
 from torch.optim.lr_scheduler import OneCycleLR
 from src.data.dataset import RNA_Dataset, LenMatchBatchSampler
 from src.models.starter import RNA_Model
+from RNA_CNN_Transformer import RNA_CNN_Transformer
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='RNA Model Training with optional W&B Logging')
@@ -120,7 +121,10 @@ dl_val= DeviceDataLoader(torch.utils.data.DataLoader(ds_val,
 train_loader = DataLoader(ds_train, batch_sampler=len_sampler_train, num_workers=num_workers, pin_memory=True)
 val_loader = DataLoader(ds_val, batch_sampler=len_sampler_val, num_workers=num_workers, pin_memory=True)
 
-model = RNA_Model().to(device)
+# Uncomment 1 of the 3 models for training
+# model = RNA_Model().to(device)
+model = RNA_CNN_Transformer(ntoken=10, ninp=512, nhead=8, nhid=2048, nlayers=6, nkmers=64, dropout=0.1).to(device)
+
 optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=0.05)
 # lr_scheduler = OneCycleLR(optimizer, max_lr=args.lr, epochs=args.epochs, steps_per_epoch=len(train_loader))
 

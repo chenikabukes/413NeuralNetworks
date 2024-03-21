@@ -10,6 +10,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
+from RNA_CNN_Transformer import RNA_CNN_Transformer
+
 import wandb
 import argparse
 from fastai.callback.wandb import *
@@ -302,7 +304,10 @@ for fold in [0]: # running multiple folds at kaggle may cause OOM
     gc.collect()
 
     data = DataLoaders(dl_train,dl_val)
-    model = RNA_Model()
+
+    # Uncomment 1 of the 3 models for training
+    # model = RNA_Model()
+    model = RNA_CNN_Transformer(ntoken=10, ninp=512, nhead=8, nhid=2048, nlayers=6, nkmers=64, dropout=0.1)
     model = model.to(device)
     learn = Learner(data, model, loss_func=loss,cbs=cbs,
                 metrics=[MAE()]).to_fp16()
