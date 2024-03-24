@@ -47,8 +47,8 @@ def seed_everything(seed):
 
 fname = 'starter_model'
 current_time = datetime.now().strftime('%Y%m%d_%H:%M')
-PATH = '/h/u6/c4/05/zha11021/CSC413/413NeuralNetworks/data'
-OUT = '/h/u6/c4/05/zha11021/CSC413/413NeuralNetworks/model_weights'
+PATH = dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + 'data')
+OUT = dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + 'model_weights')
 SEED = 1337
 seed_everything(SEED)
 os.makedirs(OUT, exist_ok=True)
