@@ -129,7 +129,6 @@ dmypy.json
 .pyre/
 
 # Data directories
-data/
 !data/external/  # You might want to keep tracking this folder if it contains public datasets
 !data/.gitkeep
 
