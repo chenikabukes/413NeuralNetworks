@@ -28,13 +28,14 @@ file_download_flags = {
 
 def download_and_convert(file_name, dataset_dir):
     # Determine if the file needs conversion to parquet
-    # needs_conversion = file_name.endswith(".csv")
-    # base_name = os.path.splitext(file_name)[0]
-    # final_path = os.path.join(dataset_dir, base_name + (".parquet" if needs_conversion else ""))
+    needs_conversion = file_name.endswith(".csv")
+    base_name = file_name[:-4]
+    # base_name = os.path.splitext(file_name)
+    final_path = os.path.join(dataset_dir, base_name + (".parquet" if needs_conversion else ""))
 
-    # if os.path.exists(final_path):
-    #     print(f"The file {os.path.basename(final_path)} already exists, skipping download.")
-    #     return
+    if os.path.exists(final_path):
+        print(f"The file {os.path.basename(final_path)} already exists, skipping download.")
+        return
 
     # # Download the file from Kaggle
     print(f"Downloading {file_name}...")
@@ -47,16 +48,16 @@ def download_and_convert(file_name, dataset_dir):
         subprocess.run(["unzip", "-o", zip_path, "-d", dataset_dir], check=True)
         os.remove(zip_path)
 
-    # # Convert to parquet if needed
-    # if needs_conversion:
-    #     csv_path = os.path.join(dataset_dir, file_name)
-    #     print(f"Converting {file_name} to Parquet format...")
-    #     df = pd.read_csv(csv_path)
-    #     for col in df.columns:
-    #         if df[col].dtype == np.float64:
-    #             df[col] = df[col].astype(np.float32)
-    #     df.to_parquet(final_path)
-    #     os.remove(csv_path)
+    # Convert to parquet if needed
+    if needs_conversion:
+        csv_path = os.path.join(dataset_dir, file_name)
+        print(f"Converting {file_name} to Parquet format...")
+        df = pd.read_csv(csv_path)
+        for col in df.columns:
+            if df[col].dtype == np.float64:
+                df[col] = df[col].astype(np.float32)
+        df.to_parquet(final_path)
+        os.remove(csv_path)
 
 if __name__ == "__main__":
     # Ensure the dataset directory exists
