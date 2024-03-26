@@ -120,7 +120,7 @@ class SimpleViTForRegression(nn.Module):
 
 model = SimpleViTForRegression(
     image_size=(225, 225),
-    patch_size=(32, 32),
+    patch_size=(25, 25),
     dim=256,
     depth=6,
     heads=16,
@@ -134,8 +134,9 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 loss_function = torch.nn.MSELoss()
 
 # put in actual input and target
-input = None
-target = None
+batch_size = 4  # Example batch size
+input = torch.randn(batch_size, 3, 225, 225)
+target = torch.randn(batch_size, 206)
 
 optimizer.zero_grad()
 output = model(input)
