@@ -1,17 +1,18 @@
 import pandas as pd
 import os, gc
 import numpy as np
-from sklearn.model_selection import KFold, Metric
+from sklearn.model_selection import KFold
 import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-from data import RNA_Dataset, LenMatchBatchSampler, DeviceDataLoader
+import sys
+sys.path.append('../data')
+from dataset import RNA_Dataset, LenMatchBatchSampler, DeviceDataLoader
 import GeneViT 
 from fastai.callback.wandb import Learner
-from fastai.vision.all import GradientClip
-
+from fastai.vision.all import GradientClip, Metric
 
 def dict_to(x, device='cuda'):
     return {k:x[k].to(device) for k in x}
@@ -69,7 +70,7 @@ class MAE(Metric):
         return loss
 
 fname = 'example0'
-PATH = '/kaggle/input/stanford-ribonanza-rna-folding-converted/'
+PATH = '../../data/'
 OUT = './'
 bs = 256
 num_workers = 2
@@ -103,7 +104,7 @@ for fold in [0]: # running multiple folds at kaggle may cause OOM
     gc.collect()
 
     data = DataLoader(dl_train,dl_val)
-    model = GeneViT()   
+    model = GeneViT(15)   
     model = model.to(device)
     learn = Learner(data, model, loss_func=loss,cbs=[GradientClip(3.0)],
                 metrics=[MAE()]).to_fp16()
