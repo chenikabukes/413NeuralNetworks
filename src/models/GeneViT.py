@@ -1,17 +1,19 @@
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
-import SimpleViT   # Simple ViT
+# import SimpleViT   # Simple ViT
+from simple_vit_regression import SimpleViTForRegression
 from pyDeepInsight import ImageTransformer  # sequence to image
 
 
 class GeneViT(nn.Module):
-    def __init__(self, image_dim):
+    def __init__(self, image_dim=15):
+        super().__init__()
         self.image_dim = image_dim
-        self.it = ImageTransformer(pixel_size=(image_dim, image_dim))
-        self.vit = SimpleViT(image_size=image_dim**2, patch_size=32, num_classes=206, dim=256, depth=6, heads=16, mlp_dim=512)
+        self.it = ImageTransformer(pixels=(image_dim, image_dim))
+        self.vit = SimpleViTForRegression(image_size=image_dim**2, patch_size=32, num_classes=206, dim=256, depth=6, heads=16, mlp_dim=512)
 
     def forward(self, x0):
         # Extend mask and data to length 225
@@ -29,4 +31,6 @@ class GeneViT(nn.Module):
         x = self.it.transform(x)
 
         # TODO SimpleViT with motifications for regression
-        # x = self.vit(x)
+        x = self.vit(x)
+
+        return x

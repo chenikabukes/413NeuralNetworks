@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 import sys
 sys.path.append('../data')
 from dataset import RNA_Dataset, LenMatchBatchSampler, DeviceDataLoader
-import GeneViT 
+from GeneViT import GeneViT 
 from fastai.callback.wandb import Learner
 from fastai.vision.all import GradientClip, Metric
 
@@ -103,9 +103,8 @@ for fold in [0]: # running multiple folds at kaggle may cause OOM
                batch_sampler=len_sampler_val, num_workers=num_workers), device)
     gc.collect()
 
-    data = DataLoader(dl_train,dl_val)
-    model = GeneViT(15)   
-    model = model.to(device)
+    data = DataLoader(dl_train, batch_size=1)
+    model = GeneViT().to(device)
     learn = Learner(data, model, loss_func=loss,cbs=[GradientClip(3.0)],
                 metrics=[MAE()]).to_fp16()
 
