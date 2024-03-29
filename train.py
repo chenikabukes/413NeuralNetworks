@@ -14,9 +14,10 @@ from torch.optim import Adam
 from datetime import datetime
 from tqdm import tqdm
 from torch.optim.lr_scheduler import OneCycleLR
-from src.data.dataset import RNA_Dataset, LenMatchBatchSampler
 from src.models.starter import RNA_Model
-from RNA_CNN_Transformer import RNA_CNN_Transformer
+from src.models.RNACNNTransformer import RNA_CNN_Transformer
+from src.models.GeneViT import GeneViT
+from src.data.dataset import RNA_Dataset, LenMatchBatchSampler
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='RNA Model Training with optional W&B Logging')
@@ -24,6 +25,12 @@ parser.add_argument('--wandb', action='store_true', help='Enable logging to Weig
 parser.add_argument('--quick_start', action='store_true', help='Use quick start dataset')
 parser.add_argument('--epochs', type=int, default=32, help='Number of training epochs')
 parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate')
+parser.add_argument('--seed', type=int, default=1337, help='Random seed')
+# TO SWITCH MODEL, CHANGE THIS ARGUMENT
+# 1. starter
+# 2. GeneViT
+# 3. RNACNNTransformer
+parser.add_argument('--model', type=int, default=1, help='Model to use for training')
 args = parser.parse_args()
 
 # W&B Integration
@@ -48,12 +55,12 @@ def seed_everything(seed):
 
 fname = 'starter_model'
 current_time = datetime.now().strftime('%Y%m%d_%H:%M')
-PATH = dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data')
-OUT = dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'model_weights')
-SEED = 1337
+DATA_PATH =  os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+MODEL_WEIGHT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'model_weights')
+SEED = args.seed
 seed_everything(SEED)
-os.makedirs(OUT, exist_ok=True)
-model_save_path = os.path.join(OUT, f'{fname}_{current_time}.pth')
+os.makedirs(MODEL_WEIGHT_PATH, exist_ok=True)
+model_save_path = os.path.join(MODEL_WEIGHT_PATH, f'{fname}_{current_time}.pth')
 bs = 256
 num_workers = 1 if True else max(1, os.cpu_count() - 1)
 nfolds = 4
@@ -87,7 +94,7 @@ def custom_loss(pred,target):
 
     return loss
 
-parquet_file = os.path.join(PATH, f"{dataset_file}.parquet")
+parquet_file = os.path.join(DATA_PATH, f"{dataset_file}.parquet")
 
 print("Read data start")
 if os.path.exists(parquet_file):
@@ -118,12 +125,16 @@ len_sampler_val = LenMatchBatchSampler(sampler_val, batch_size=bs,
 dl_val= DeviceDataLoader(torch.utils.data.DataLoader(ds_val,
             batch_sampler=len_sampler_val, num_workers=num_workers), device)
 
-train_loader = DataLoader(dl_train, batch_sampler=len_sampler_train, num_workers=num_workers, pin_memory=True)
-val_loader = DataLoader(dl_val, batch_sampler=len_sampler_val, num_workers=num_workers, pin_memory=True)
+train_loader = DataLoader(ds_train, batch_sampler=len_sampler_train, num_workers=num_workers, pin_memory=True)
+val_loader = DataLoader(ds_val, batch_sampler=len_sampler_val, num_workers=num_workers, pin_memory=True)
 
-# Uncomment 1 of the 3 models for training
-# model = RNA_Model().to(device)
-model = RNA_CNN_Transformer(ntoken=10, ninp=512, nhead=8, nhid=2048, nlayers=6, nkmers=64, dropout=0.1).to(device)
+model = None
+if args.model == 1:
+    model = RNA_Model().to(device)
+elif args.model == 2:
+    model = GeneViT().to(device)
+elif args.model == 3:
+    model = RNA_CNN_Transformer(ntoken=10, ninp=512, nhead=8, nhid=2048, nlayers=6, nkmers=64, dropout=0.1).to(device)
 
 optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=0.05)
 # lr_scheduler = OneCycleLR(optimizer, max_lr=args.lr, epochs=args.epochs, steps_per_epoch=len(train_loader))

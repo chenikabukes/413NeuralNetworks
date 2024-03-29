@@ -4,7 +4,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 # import SimpleViT   # Simple ViT
-from simple_vit_regression import SimpleViTForRegression
+from src.models.simple_vit_regression import SimpleViTForRegression
 from pyDeepInsight import ImageTransformer  # sequence to image
 
 

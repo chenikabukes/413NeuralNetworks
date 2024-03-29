@@ -61,7 +61,7 @@ def download_and_convert(file_name, dataset_dir):
 
 if __name__ == "__main__":
     # Ensure the dataset directory exists
-    dataset_dir = "../../data"
+    dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data')
     if not os.path.exists(dataset_dir):
         os.makedirs(dataset_dir)
 
