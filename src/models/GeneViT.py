@@ -13,7 +13,7 @@ class GeneViT(nn.Module):
         super().__init__()
         self.image_dim = image_dim
         self.it = ImageTransformer(pixels=(image_dim, image_dim))
-        self.vit = SimpleViTForRegression(image_size=image_dim**2, patch_size=32, num_classes=206, dim=256, depth=6, heads=16, mlp_dim=512)
+        self.vit = SimpleViTForRegression(image_size=image_dim**2, patch_size=25, target_dim=206, dim=256, depth=6, heads=16, mlp_dim=512)
 
     def forward(self, x0):
         # Extend mask and data to length 225
