@@ -26,6 +26,7 @@ parser.add_argument('--quick_start', action='store_true', help='Use quick start 
 parser.add_argument('--epochs', type=int, default=32, help='Number of training epochs')
 parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate')
 parser.add_argument('--seed', type=int, default=1337, help='Random seed')
+parser.add_argument('--toy',  action='store_true', help='Use toy dataset')
 # TO SWITCH MODEL, CHANGE THIS ARGUMENT
 # 1. starter
 # 2. GeneViT
@@ -40,7 +41,7 @@ if args.wandb:
     wandb.config.update({"epochs": args.epochs, "lr": args.lr})
 
 # Use the appropriate dataset file based on -quick_start flag
-dataset_file = 'train_data_QUICK_START' if args.quick_start else 'train_data'
+dataset_file = 'train_data_QUICK_START' if args.quick_start else ('train_data_light' if args.toy else 'train_data')
 print(f"Using dataset: {dataset_file}")
 
 
@@ -106,8 +107,8 @@ else:
 print("Read data end")
 
 fold = 0
-ds_train = RNA_Dataset(df, mode='train', fold=fold, nfolds=nfolds)
-ds_train_len = RNA_Dataset(df, mode='train', fold=fold,
+ds_train = RNA_Dataset(df, args.seed, mode='train', fold=fold, nfolds=nfolds)
+ds_train_len = RNA_Dataset(df, args.seed, mode='train', fold=fold,
             nfolds=nfolds, mask_only=True)
 sampler_train = torch.utils.data.RandomSampler(ds_train_len)
 len_sampler_train = LenMatchBatchSampler(sampler_train, batch_size=bs,
@@ -116,8 +117,8 @@ dl_train = DeviceDataLoader(torch.utils.data.DataLoader(ds_train,
             batch_sampler=len_sampler_train, num_workers=num_workers,
             persistent_workers=True), device)
 
-ds_val = RNA_Dataset(df, mode='eval', fold=fold, nfolds=nfolds)
-ds_val_len = RNA_Dataset(df, mode='eval', fold=fold, nfolds=nfolds,
+ds_val = RNA_Dataset(df, args.seed, mode='eval', fold=fold, nfolds=nfolds)
+ds_val_len = RNA_Dataset(df, args.seed, mode='eval', fold=fold, nfolds=nfolds,
             mask_only=True)
 sampler_val = torch.utils.data.SequentialSampler(ds_val_len)
 len_sampler_val = LenMatchBatchSampler(sampler_val, batch_size=bs,

@@ -57,6 +57,12 @@ def download_and_convert(file_name, dataset_dir):
             if df[col].dtype == np.float64:
                 df[col] = df[col].astype(np.float32)
         df.to_parquet(final_path)
+        if file_name == "train_data.csv":
+            lighter_df = df.head(1000)  # Selecting the first 1,000 rows
+            # Define the path for the lighter version
+            lighter_path = os.path.join(dataset_dir, "train_data_light.parquet")
+            lighter_df.to_parquet(lighter_path)
+            print(f"Also created a lighter version with 1k rows at {lighter_path}")
         os.remove(csv_path)
 
 if __name__ == "__main__":
