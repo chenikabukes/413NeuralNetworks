@@ -27,12 +27,13 @@ class RNA_CNN_Transformer(nn.Module):
         self.decoder.weight.data.uniform_(-initrange, initrange)
 
     def forward(self, src, src_mask):
-        src = self.conv1(src)
+        src = self.conv1(src)  # [batch_size, nkmers, sequence_length]
         src = F.relu(src)
-        src = src.permute(2, 0, 1)  # Reshape for embedding layer
-        src = self.encoder(src) + self.pos_encoder(src)
-        output = self.transformer_encoder(src, src_mask)
-        output = self.decoder(output)
+        src = src.permute(2, 0, 1)  # [sequence_length, batch_size, nkmers]
+        src = self.encoder(src)  # [sequence_length, batch_size, ninp]
+        src = self.pos_encoder(src)
+        output = self.transformer_encoder(src, src_mask)  # [sequence_length, batch_size, ninp]
+        output = self.decoder(output)  # [sequence_length, batch_size, ntoken]
         return output
 
 class PositionalEncoding(nn.Module):
