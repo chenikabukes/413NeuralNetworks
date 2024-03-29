@@ -48,8 +48,8 @@ def seed_everything(seed):
 
 fname = 'starter_model'
 current_time = datetime.now().strftime('%Y%m%d_%H:%M')
-PATH = dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + 'data')
-OUT = dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + 'model_weights')
+PATH = dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data')
+OUT = dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'model_weights')
 SEED = 1337
 seed_everything(SEED)
 os.makedirs(OUT, exist_ok=True)
@@ -118,8 +118,8 @@ len_sampler_val = LenMatchBatchSampler(sampler_val, batch_size=bs,
 dl_val= DeviceDataLoader(torch.utils.data.DataLoader(ds_val,
             batch_sampler=len_sampler_val, num_workers=num_workers), device)
 
-train_loader = DataLoader(ds_train, batch_sampler=len_sampler_train, num_workers=num_workers, pin_memory=True)
-val_loader = DataLoader(ds_val, batch_sampler=len_sampler_val, num_workers=num_workers, pin_memory=True)
+train_loader = DataLoader(dl_train, batch_sampler=len_sampler_train, num_workers=num_workers, pin_memory=True)
+val_loader = DataLoader(dl_val, batch_sampler=len_sampler_val, num_workers=num_workers, pin_memory=True)
 
 # Uncomment 1 of the 3 models for training
 # model = RNA_Model().to(device)
@@ -140,6 +140,8 @@ for epoch in range(1, args.epochs+1):
 
     for batch in tqdm(train_loader, desc=f"Epoch {epoch}/{args.epochs} Training", leave=False):
         inputs, targets = to_device(batch, device)  # Ensure this function correctly moves your batch to the device
+        print(f'Inputs shape: {inputs}')
+        print(f'Targets shape: {targets}')
         optimizer.zero_grad()
 
         with autocast():
