@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 class RNA_Dataset(Dataset):
-    def __init__(self, df, mode='train', seed=2023, fold=0, nfolds=4,
+    def __init__(self, df, seed, mode='train', fold=0, nfolds=4,
                  mask_only=False, **kwargs):
         self.seq_map = {'A':0,'C':1,'G':2,'U':3}
         self.Lmax = 206
