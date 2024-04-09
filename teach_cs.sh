@@ -6,4 +6,4 @@ squeue -p csc413
 
 srun -p csc413 --gres gpu python3 -u fastai_script.py --wandb
 
-srun -p csc413 --gres gpu python3 -u train.py --model 3 --wandb
+srun -p csc413 --gres gpu python3 -u train.py --model 1 --wandb

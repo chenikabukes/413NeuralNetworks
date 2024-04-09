@@ -44,6 +44,23 @@ if args.wandb:
 dataset_file = 'train_data_QUICK_START' if args.quick_start else ('train_data_light' if args.toy else 'train_data')
 print(f"Using dataset: {dataset_file}")
 
+def generate_src_mask(sz, device):
+    # Assuming that 'sz' is the sequence length, modify as needed
+    # The mask ensures the model doesn't attend to future positions during training
+    mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+    return mask.unsqueeze(0).to(device)  # Add batch dimension
+
+
+def one_hot_encode(sequences, device):
+    # Assuming sequences is a tensor of sequence IDs with shape [batch_size, sequence_length]
+    # and that you have 4 nucleotides (A, C, G, U) represented as 0, 1, 2, 3.
+    batch_size, sequence_length = sequences.shape
+    one_hot_encoded = torch.zeros(batch_size, 4, sequence_length, device=device)
+    for i, nucleotide in enumerate('ACGU'):
+        one_hot_encoded[:, i, :] = (sequences == i).to(torch.float32)
+    return one_hot_encoded.permute(0, 2, 1)  # Change to [batch_size, sequence_length, 4] if needed
+
 
 def seed_everything(seed):
     random.seed(seed)
@@ -128,14 +145,13 @@ dl_val= DeviceDataLoader(torch.utils.data.DataLoader(ds_val,
 
 train_loader = DataLoader(ds_train, batch_sampler=len_sampler_train, num_workers=num_workers, pin_memory=True)
 val_loader = DataLoader(ds_val, batch_sampler=len_sampler_val, num_workers=num_workers, pin_memory=True)
-
 model = None
 if args.model == 1:
     model = RNA_Model().to(device)
 elif args.model == 2:
     model = GeneViT().to(device)
 elif args.model == 3:
-    model = RNA_CNN_Transformer(ntoken=10, ninp=512, nhead=8, nhid=2048, nlayers=6, nkmers=64, dropout=0.1).to(device)
+    model = RNA_CNN_Transformer().to(device)
 
 optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=0.05)
 # lr_scheduler = OneCycleLR(optimizer, max_lr=args.lr, epochs=args.epochs, steps_per_epoch=len(train_loader))
@@ -155,11 +171,11 @@ for epoch in range(1, args.epochs+1):
         print(f'Inputs shape: {inputs}')
         print(f'Targets shape: {targets}')
         optimizer.zero_grad()
-
         with autocast():
-            predictions = model(inputs)
             # print('The predictions are:', predictions)
             # print('The targets are:', targets)
+            predictions = model(inputs)
+        
             loss = custom_loss(predictions, targets)
 
         scaler.scale(loss).backward()
@@ -183,7 +199,16 @@ for epoch in range(1, args.epochs+1):
         for batch in tqdm(val_loader, desc=f"Epoch {epoch}/{args.epochs} Validation", leave=False):
             inputs, targets = to_device(batch, device)
             with autocast():
-                predictions = model(inputs)
+                if args.model == 3:
+                # Create src_mask dynamically based on the actual sequence lengths in the batch
+                    print("IN ARGS.MODEL == 3")
+                    seq_lengths = inputs['mask'].sum(dim=1)  # Assuming 'mask' indicates the valid positions in sequences
+                    max_len = seq_lengths.max().item()
+                    src_mask = generate_src_mask(max_len, device)
+                    src_input = inputs['seq'].unsqueeze(1).to(device).float()  # Add channel dimension
+                    predictions = model(src_input, src_mask)
+                else:
+                    predictions = model(inputs)
                 val_loss = custom_loss(predictions, targets)
 
             val_loss_accumulator += val_loss.item()
