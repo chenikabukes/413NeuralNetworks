@@ -167,19 +167,15 @@ for epoch in range(1, args.epochs+1):
     num_batches_train = 0
 
     for batch in tqdm(train_loader, desc=f"Epoch {epoch}/{args.epochs} Training", leave=False):
-        inputs, targets = to_device(batch, device)  # Ensure this function correctly moves your batch to the device
+        inputs, targets = to_device(batch, device)  
         print(f'Inputs shape: {inputs}')
         print(f'Targets shape: {targets}')
         optimizer.zero_grad()
         with autocast():
-            # print('The predictions are:', predictions)
-            # print('The targets are:', targets)
             predictions = model(inputs)
-        
             loss = custom_loss(predictions, targets)
 
         scaler.scale(loss).backward()
-        # Gradient clipping to avoid overfit
         torch.nn.utils.clip_grad_norm_(model.parameters(), 3.0)
         scaler.step(optimizer)
         scaler.update()
@@ -199,16 +195,7 @@ for epoch in range(1, args.epochs+1):
         for batch in tqdm(val_loader, desc=f"Epoch {epoch}/{args.epochs} Validation", leave=False):
             inputs, targets = to_device(batch, device)
             with autocast():
-                if args.model == 3:
-                # Create src_mask dynamically based on the actual sequence lengths in the batch
-                    print("IN ARGS.MODEL == 3")
-                    seq_lengths = inputs['mask'].sum(dim=1)  # Assuming 'mask' indicates the valid positions in sequences
-                    max_len = seq_lengths.max().item()
-                    src_mask = generate_src_mask(max_len, device)
-                    src_input = inputs['seq'].unsqueeze(1).to(device).float()  # Add channel dimension
-                    predictions = model(src_input, src_mask)
-                else:
-                    predictions = model(inputs)
+                predictions = model(inputs)
                 val_loss = custom_loss(predictions, targets)
 
             val_loss_accumulator += val_loss.item()
