@@ -168,8 +168,6 @@ for epoch in range(1, args.epochs+1):
 
     for batch in tqdm(train_loader, desc=f"Epoch {epoch}/{args.epochs} Training", leave=False):
         inputs, targets = to_device(batch, device)  
-        print(f'Inputs shape: {inputs}')
-        print(f'Targets shape: {targets}')
         optimizer.zero_grad()
         with autocast():
             predictions = model(inputs)
