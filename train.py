@@ -27,6 +27,7 @@ parser.add_argument('--epochs', type=int, default=32, help='Number of training e
 parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate')
 parser.add_argument('--seed', type=int, default=1337, help='Random seed')
 parser.add_argument('--toy',  action='store_true', help='Use toy dataset')
+parser.add_argument('--early_stopping', action='store_true', help='Enable early stopping')
 # TO SWITCH MODEL, CHANGE THIS ARGUMENT
 # 1. starter
 # 2. GeneViT
@@ -167,7 +168,7 @@ for epoch in range(1, args.epochs+1):
     num_batches_train = 0
 
     for batch in tqdm(train_loader, desc=f"Epoch {epoch}/{args.epochs} Training", leave=False):
-        inputs, targets = to_device(batch, device)  
+        inputs, targets = to_device(batch, device)
         optimizer.zero_grad()
         with autocast():
             predictions = model(inputs)
@@ -212,7 +213,7 @@ for epoch in range(1, args.epochs+1):
         early_stopping_counter = 0
     else:
         early_stopping_counter += 1
-        if early_stopping_counter >= patience:
+        if args.early_stopping and early_stopping_counter >= patience:
             print(f"Stopping early at epoch {epoch} due to no improvement.")
             break
 
