@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import math
 
+
 class SinusoidalPosEmb(nn.Module):
     def __init__(self, dim=16, M=10000):
         super().__init__()
@@ -17,15 +18,25 @@ class SinusoidalPosEmb(nn.Module):
         emb = torch.cat((emb.sin(), emb.cos()), dim=-1)
         return emb
 
-class RNA_CNN_Transformer(nn.Module):
-    def __init__(self, dim=192, depth=12, head_size=32, dropout_rate=0.1, cnn_out_channels=32, kernel_size=3, pool_size=None):
+
+class RNA_Model(nn.Module):
+    def __init__(
+        self,
+        dim=192,
+        depth=12,
+        head_size=32,
+        dropout_rate=0.1,
+        cnn_out_channels=32,
+        kernel_size=3,
+        pool_size=None,
+    ):
         super().__init__()
         self.emb = nn.Embedding(4, dim)
         self.pos_enc = SinusoidalPosEmb(dim)
 
         # CNN with BatchNorm and Dropout
         self.cnn = nn.Sequential(
-            nn.Conv1d(dim, cnn_out_channels, kernel_size, padding=kernel_size//2),
+            nn.Conv1d(dim, cnn_out_channels, kernel_size, padding=kernel_size // 2),
             nn.ReLU(),
             nn.BatchNorm1d(cnn_out_channels),
             nn.Dropout(dropout_rate),
@@ -41,20 +52,20 @@ class RNA_CNN_Transformer(nn.Module):
                 nhead=cnn_out_channels // head_size,
                 dim_feedforward=4 * cnn_out_channels,
                 dropout=dropout_rate,
-                activation='gelu',
+                activation="gelu",
                 batch_first=True,
-                norm_first=True
+                norm_first=True,
             ),
-            num_layers=depth
+            num_layers=depth,
         )
 
         self.dropout = nn.Dropout(dropout_rate)
         self.output = nn.Linear(cnn_out_channels if not pool_size else pool_size, 2)
 
     def forward(self, x0):
-        mask = x0['mask']
+        mask = x0["mask"]
         Lmax = mask.sum(-1).max()
-        x = x0['seq'][:, :Lmax]
+        x = x0["seq"][:, :Lmax]
 
         x = self.emb(x)
         pos = self.pos_enc(torch.arange(Lmax, device=x.device).unsqueeze(0))
@@ -77,6 +88,10 @@ class RNA_CNN_Transformer(nn.Module):
         x = self.output(x)
 
         return x
+
+    @staticmethod
+    def name() -> str:
+        return "<CNN Transformer Model>"
 
 
 # class RNA_CNN_Transformer(nn.Module):

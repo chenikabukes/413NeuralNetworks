@@ -31,15 +31,33 @@ def download_and_convert(file_name, dataset_dir):
     needs_conversion = file_name.endswith(".csv")
     base_name = file_name[:-4]
     # base_name = os.path.splitext(file_name)
-    final_path = os.path.join(dataset_dir, base_name + (".parquet" if needs_conversion else ""))
+    final_path = os.path.join(
+        dataset_dir, base_name + (".parquet" if needs_conversion else "")
+    )
 
     if os.path.exists(final_path):
-        print(f"The file {os.path.basename(final_path)} already exists, skipping download.")
+        print(
+            f"The file {os.path.basename(final_path)} already exists, skipping download."
+        )
         return
 
     # # Download the file from Kaggle
     print(f"Downloading {file_name}...")
-    subprocess.run(["kaggle", "competitions", "download", "-c", "stanford-ribonanza-rna-folding", "-f", file_name, "-p", dataset_dir, "--quiet"], check=True)
+    subprocess.run(
+        [
+            "kaggle",
+            "competitions",
+            "download",
+            "-c",
+            "stanford-ribonanza-rna-folding",
+            "-f",
+            file_name,
+            "-p",
+            dataset_dir,
+            "--quiet",
+        ],
+        check=True,
+    )
 
     # Unzip if a ZIP file was downloaded
     zip_path = os.path.join(dataset_dir, file_name + ".zip")
@@ -65,9 +83,13 @@ def download_and_convert(file_name, dataset_dir):
             print(f"Also created a lighter version with 1k rows at {lighter_path}")
         os.remove(csv_path)
 
+
 if __name__ == "__main__":
     # Ensure the dataset directory exists
-    dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data')
+    dataset_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "data",
+    )
     if not os.path.exists(dataset_dir):
         os.makedirs(dataset_dir)
 
