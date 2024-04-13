@@ -132,11 +132,9 @@ class DeviceDataLoader:
             yield tuple(dict_to(x, self.device) for x in batch)
 
 def load_data(parquet_file):
-    if os.path.exists(parquet_file):
-        df = pd.read_parquet(parquet_file)
-        df = df.drop_duplicates(subset=["sequence_id", "experiment_type"])
-        df = df.sort_values(by=["sequence_id", "experiment_type"])
-    else:
+    if not os.path.exists(parquet_file):
         raise FileNotFoundError(f"File {parquet_file} not found.")
-    print("DF end")
+    df = pd.read_parquet(parquet_file)
+    df = df.drop_duplicates(subset=["sequence_id", "experiment_type"]).sort_values(by=["sequence_id", "experiment_type"])
+    print("Data loaded and processed.")
     return df
