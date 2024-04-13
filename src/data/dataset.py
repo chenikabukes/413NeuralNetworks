@@ -2,7 +2,8 @@ from sklearn.model_selection import KFold
 import torch
 from torch.utils.data import Dataset
 import numpy as np
-
+import os
+import pandas as pd
 
 class RNA_Dataset(Dataset):
     def __init__(
@@ -129,3 +130,13 @@ class DeviceDataLoader:
     def __iter__(self):
         for batch in self.dataloader:
             yield tuple(dict_to(x, self.device) for x in batch)
+
+def load_data(parquet_file):
+    if os.path.exists(parquet_file):
+        df = pd.read_parquet(parquet_file)
+        df = df.drop_duplicates(subset=["sequence_id", "experiment_type"])
+        df = df.sort_values(by=["sequence_id", "experiment_type"])
+    else:
+        raise FileNotFoundError(f"File {parquet_file} not found.")
+    print("DF end")
+    return df
