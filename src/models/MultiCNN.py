@@ -96,4 +96,4 @@ class RNA_Model(nn.Module):
 
     @staticmethod
     def name() -> str:
-        return "<RNA Multilayer CNN Transformer Model>"
+        return "<Multi CNN Transformer>"
