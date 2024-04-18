@@ -11,7 +11,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from src.models.RNACNNTransformer import RNA_Model as Single_CNN_Transformer
-from src.models.Hyena import RNA_Model as RNA_HyenaModel
+from src.models.Hyena import RNA_Transformer_Model as Hyena_Transformer_Model
+from src.models.Hyena import RNA_MLP_Model as Hyena_MLP_Model
 from src.models.MultiCNN import RNA_Model as Multi_CNN_Transformer
 from src.models.starter import RNA_Model as Starter
 import wandb
@@ -94,6 +95,7 @@ SEED = 2023
 nfolds = 4
 device = f'cuda:{torch.cuda.current_device()}' if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
+# choose model
 model = None
 if args.model == 1:
     model = Starter()
@@ -102,14 +104,16 @@ elif args.model == 2:
 elif args.model == 3:
     model = Multi_CNN_Transformer()
 elif args.model == 4:
-    model = RNA_HyenaModel()
+    model = Hyena_Transformer_Model()
+elif args.model == 5:
+    model = Hyena_MLP_Model()
 model = model.to(device)
 checkpoint_name = f'{model.name()}_{datetime.now().strftime("%Y%m%d_%H%M")}.pth'
 cbs = [GradientClip(3.0), SaveModelCallback(monitor='valid_loss', fname=os.path.join(MODEL_WEIGHT_PATH, checkpoint_name))]
 
 if args.wandb:
     wandb.login()
-    wandb.init(project='RNA_Translation', entity='rna-fold', name=f"{model.name()}_{datetime.now().strftime('%Y%m%d_%H%M')}", group=model.name())
+    wandb.init(project='RNA_Translation', entity='rna-fold', name=f"{model.name()}_{datetime.now().strftime('%Y%m%d_%H%M')}", group=f"{model.name()}_{args.epochs}")
     wandb.config.update({"epochs": args.epochs, "lr": args.lr})
     cbs.append(WandbCallback())
 
@@ -147,13 +151,6 @@ os.makedirs(MODEL_WEIGHT_PATH, exist_ok=True)
 print("DF start")
 parquet_file = os.path.join(DATA_PATH, f"train_data.parquet")
 
-# if os.path.exists(parquet_file):
-#     df = pd.read_parquet(parquet_file)
-#     df = df.drop_duplicates(subset=["sequence_id", "experiment_type"])
-#     df = df.sort_values(by=["sequence_id", "experiment_type"])
-# else:
-#     raise FileNotFoundError(f"File {parquet_file} not found.")
-# print("DF end")
 df = load_data(parquet_file)
 
 ds_train = RNA_Dataset(df, SEED, mode='train', nfolds=nfolds)
