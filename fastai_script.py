@@ -109,7 +109,7 @@ cbs = [GradientClip(3.0), SaveModelCallback(monitor='valid_loss', fname=os.path.
 
 if args.wandb:
     wandb.login()
-    wandb.init(project='RNA_Translation', entity='rna-fold', name=f"{model.name()}_{datetime.now().strftime('%Y%m%d_%H%M')}")
+    wandb.init(project='RNA_Translation', entity='rna-fold', name=f"{model.name()}_{datetime.now().strftime('%Y%m%d_%H%M')}", group=model.name())
     wandb.config.update({"epochs": args.epochs, "lr": args.lr})
     cbs.append(WandbCallback())
 

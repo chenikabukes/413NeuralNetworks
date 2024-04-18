@@ -299,13 +299,10 @@ class RNA_Model(nn.Module):
         self,
         num_embeddings=4,
         emb_dim=192,
-        num_hyena_blocks=5,
+        num_hyena_blocks=1,
         l_max=768,
         order=2,
         filter_order=64,
-        transformer_depth=1,
-        head_size=8,
-        pool_size=None,
     ):
         super().__init__()
         self.emb = nn.Embedding(num_embeddings, emb_dim)
@@ -317,7 +314,7 @@ class RNA_Model(nn.Module):
                 HyenaOperator(
                     d_model=emb_dim, l_max=l_max, order=order, filter_order=filter_order
                 )
-                for _ in range(1)
+                for _ in range(num_hyena_blocks)
             ]
         )
 
@@ -344,7 +341,7 @@ class RNA_Model(nn.Module):
 
         x = self.mlp(x)
 
-        # x = self.drop_out(x)
+        x = self.drop_out(x)
         x = self.proj_out(x)
         return x
 
