@@ -1,3 +1,6 @@
+"""
+Adapted from https://www.kaggle.com/code/iafoss/rna-starter-0-186-lb.
+"""
 import torch
 from fastai.vision.all import *
 import os, gc
@@ -175,7 +178,7 @@ data = DataLoaders(dl_train,dl_val)
 
 learn = Learner(data, model, loss_func=loss,cbs=cbs,
             metrics=[MAE()]).to_fp16()
-#fp16 doesn't help at P100 but gives x1.6-1.8 speedup at modern hardware
+# fp16 doesn't help at P100 but gives x1.6-1.8 speedup at modern hardware
 
 learn.fit_one_cycle(args.epochs, lr_max=args.lr, wd=0.05, pct_start=0.02)
 gc.collect()

@@ -1,3 +1,6 @@
+"""
+Adapted from https://www.kaggle.com/code/iafoss/rna-starter-0-186-lb.
+"""
 from sklearn.model_selection import KFold
 import torch
 from torch.utils.data import Dataset
