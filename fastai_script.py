@@ -16,6 +16,7 @@ from src.models.RNACNNTransformer import RNA_Model as Single_CNN_Transformer
 from src.models.MultiCNN import RNA_Model as Multi_CNN_Transformer
 from src.models.Hyena import RNA_MLP_Model as Hyena_MLP_Model
 from src.models.Hyena import RNA_Transformer_Model as Hyena_Transformer_Model
+from src.models.Hyena import RNA_CNN_Model as Hyena_CNN_Model
 import wandb
 import argparse
 from fastai.callback.wandb import *
@@ -108,6 +109,8 @@ elif args.model == 4:
     model = Hyena_MLP_Model()
 elif args.model == 5:
     model = Hyena_Transformer_Model()
+elif args.model == 6:
+    model = Hyena_CNN_Model()
 model = model.to(device)
 checkpoint_name = f'{model.name()}_{datetime.now().strftime("%Y%m%d_%H%M")}.pth'
 cbs = [GradientClip(3.0), SaveModelCallback(monitor='valid_loss', fname=os.path.join(MODEL_WEIGHT_PATH, checkpoint_name))]

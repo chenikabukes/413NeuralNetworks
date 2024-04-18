@@ -405,3 +405,61 @@ class RNA_MLP_Model(nn.Module):
     @staticmethod
     def name() -> str:
         return "<Hyena MLP Model>"
+
+
+class RNA_CNN_Model(nn.Module):
+    def __init__(
+        self,
+        num_embeddings=4,
+        emb_dim=192,
+        l_max=768,
+        order=2,
+        filter_order=64,
+        kernel_size=3,
+        dropout_rate=0.1,
+        cnn_out_channels=192,
+    ):
+        super().__init__()
+        self.emb = nn.Embedding(num_embeddings, emb_dim)
+        self.pos_enc = SinusoidalPosEmb(emb_dim)
+
+        self.cnn = nn.Sequential(
+            nn.Conv1d(emb_dim, cnn_out_channels, kernel_size, padding=kernel_size // 2),
+            nn.ReLU(),
+            nn.BatchNorm1d(cnn_out_channels),
+            nn.Dropout(dropout_rate),
+        )
+
+        # Initialize a Hyena Operator
+        self.hyena_operator = HyenaOperator(d_model=cnn_out_channels, 
+                                            l_max=l_max, order=order, 
+                                            filter_order=filter_order)
+
+        self.drop_out = nn.Dropout(0.1)
+        self.proj_out = nn.Linear(
+            emb_dim, 2
+        )  # Output dim is 2 for reactivity prediction
+
+    def forward(self, x0):
+        mask = x0["mask"]
+        Lmax = mask.sum(-1).max()
+        mask = mask[:, :Lmax].bool()
+        x = x0["seq"][:, :Lmax]
+
+        x = self.emb(x)
+        pos = self.pos_enc(torch.arange(Lmax, device=x.device).unsqueeze(0))
+        x += pos
+        
+        x = x.permute(0, 2, 1)
+        x = self.cnn(x)
+
+        x = x.permute(0, 2, 1)
+        x = self.hyena_operator(x)
+
+        x = self.drop_out(x)
+        x = self.proj_out(x)
+        return x
+
+    @staticmethod
+    def name() -> str:
+        return "<Hyena CNN Model>"
