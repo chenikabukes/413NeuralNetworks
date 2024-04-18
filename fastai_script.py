@@ -139,7 +139,6 @@ class MAE(Metric):
         x,y = torch.cat(self.x,0),torch.cat(self.y,0)
         loss = F.l1_loss(x, y, reduction='none')
         loss = loss[~torch.isnan(loss)].mean()
-        print(loss)
         return loss
 
 

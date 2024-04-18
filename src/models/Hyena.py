@@ -14,7 +14,7 @@ class SinusoidalPosEmb(nn.Module):
     def forward(self, x):
         device = x.device
         half_dim = self.dim // 2
-        emb = math.log(self.M + 1e-10) / half_dim
+        emb = math.log(self.M) / half_dim
         emb = torch.exp(torch.arange(half_dim, device=device) * (-emb))
         emb = x[..., None] * emb[None, ...]
         emb = torch.cat((emb.sin(), emb.cos()), dim=-1)
@@ -25,13 +25,13 @@ def fftconv(u, k, D):
     seqlen = u.shape[-1]
     fft_size = 2 * seqlen
 
-    k_f = torch.fft.rfft(k, n=fft_size) / (fft_size + 1e-10)
-    u_f = torch.fft.rfft(u.to(dtype=k.dtype), n=fft_size) + 1e-10
+    k_f = torch.fft.rfft(k, n=fft_size) / (fft_size + 1e-16)
+    u_f = torch.fft.rfft(u.to(dtype=k.dtype), n=fft_size) + 1e-16
 
     if len(u.shape) > 3:
         k_f = k_f.unsqueeze(1)
     uk = u_f * k_f
-    y = torch.fft.irfft(uk + 1e-10, n=fft_size, norm="forward")[..., :seqlen]
+    y = torch.fft.irfft(uk, n=fft_size, norm="forward")[..., :seqlen]
 
     out = y + u * D.unsqueeze(-1)
     return out.to(dtype=u.dtype)
@@ -114,14 +114,14 @@ class ExponentialModulation(OptimModule):
         super().__init__()
         self.modulate = modulate
         self.shift = shift
-        max_decay = math.log(target + 1e-10) / fast_decay_pct
-        min_decay = math.log(target + 1e-10) / slow_decay_pct
+        max_decay = math.log(target + 1e-16) / fast_decay_pct
+        min_decay = math.log(target + 1e-16) / slow_decay_pct
         deltas = torch.linspace(min_decay, max_decay, d_model)[None, None]
         self.register("deltas", deltas, lr=modulation_lr)
 
     def forward(self, t, x):
         if self.modulate:
-            decay = torch.exp(-t * self.deltas.abs() + 1e-10)
+            decay = torch.exp(-t * self.deltas.abs() + 1e-16)
             x = x * (decay + self.shift)
         return x
 
@@ -271,6 +271,29 @@ class HyenaOperator(nn.Module):
         return y
 
 
+class Mlp(nn.Module):
+
+    def __init__(self, in_features, hidden_features=None, out_features=None, activation=F.gelu,
+                 return_residual=False, device=None, dtype=None):
+        """
+        From https://github.com/HazyResearch/flash-attention/blob/main/flash_attn/modules/mlp.py
+        """
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        super().__init__()
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+        self.return_residual = return_residual
+        self.fc1 = nn.Linear(in_features, hidden_features, **factory_kwargs)
+        self.activation = activation
+        self.fc2 = nn.Linear(hidden_features, out_features, **factory_kwargs)
+
+    def forward(self, x):
+        y = self.fc1(x)
+        y = self.activation(y)
+        y = self.fc2(y)
+        return y if not self.return_residual else (y, x)
+
+
 class RNA_Model(nn.Module):
     def __init__(
         self,
@@ -294,17 +317,11 @@ class RNA_Model(nn.Module):
                 HyenaOperator(
                     d_model=emb_dim, l_max=l_max, order=order, filter_order=filter_order
                 )
-                for _ in range(num_hyena_blocks)
+                for _ in range(1)
             ]
         )
 
-        # Transformer encoder layer for attention mechanism
-        transformer_encoder_layer = nn.TransformerEncoderLayer(
-            d_model=emb_dim, nhead=head_size, dropout=0.1, batch_first=True
-        )
-        self.transformer_encoder = nn.TransformerEncoder(
-            transformer_encoder_layer, num_layers=transformer_depth
-        )
+        self.mlp = Mlp(emb_dim)
 
         self.drop_out = nn.Dropout(0.1)
         self.proj_out = nn.Linear(
@@ -321,14 +338,13 @@ class RNA_Model(nn.Module):
         pos = self.pos_enc(torch.arange(Lmax, device=x.device).unsqueeze(0))
         x += pos
 
-        # Pass through the Hyena Operator layers
+        # # Pass through the Hyena Operator layers
         for hyena_operator in self.hyena_operators:
             x = hyena_operator(x)
 
-        # Transformer encoder expects shape (batch, seq_len, feature)
-        x = self.transformer_encoder(x, src_key_padding_mask=~mask)
+        x = self.mlp(x)
 
-        x = self.drop_out(x)
+        # x = self.drop_out(x)
         x = self.proj_out(x)
         return x
 
