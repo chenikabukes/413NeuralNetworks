@@ -25,7 +25,7 @@ class RNA_Model(nn.Module):
         num_embeddings=4,
         emb_dim=192,
         cnn_layers=3,
-        cnn_out_channels=96,
+        cnn_out_channels=192,
         kernel_size=3,
         dropout_rate=0.1,
         transformer_depth=6,

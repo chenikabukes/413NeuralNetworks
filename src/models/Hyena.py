@@ -14,7 +14,7 @@ class SinusoidalPosEmb(nn.Module):
     def forward(self, x):
         device = x.device
         half_dim = self.dim // 2
-        emb = math.log(self.M) / half_dim
+        emb = math.log(self.M + 1e-10) / half_dim
         emb = torch.exp(torch.arange(half_dim, device=device) * (-emb))
         emb = x[..., None] * emb[None, ...]
         emb = torch.cat((emb.sin(), emb.cos()), dim=-1)
@@ -25,12 +25,13 @@ def fftconv(u, k, D):
     seqlen = u.shape[-1]
     fft_size = 2 * seqlen
 
-    k_f = torch.fft.rfft(k, n=fft_size) / fft_size
-    u_f = torch.fft.rfft(u.to(dtype=k.dtype), n=fft_size)
+    k_f = torch.fft.rfft(k, n=fft_size) / (fft_size + 1e-10)
+    u_f = torch.fft.rfft(u.to(dtype=k.dtype), n=fft_size) + 1e-10
 
     if len(u.shape) > 3:
         k_f = k_f.unsqueeze(1)
-    y = torch.fft.irfft(u_f * k_f, n=fft_size, norm="forward")[..., :seqlen]
+    uk = u_f * k_f
+    y = torch.fft.irfft(uk + 1e-10, n=fft_size, norm="forward")[..., :seqlen]
 
     out = y + u * D.unsqueeze(-1)
     return out.to(dtype=u.dtype)
@@ -113,14 +114,14 @@ class ExponentialModulation(OptimModule):
         super().__init__()
         self.modulate = modulate
         self.shift = shift
-        max_decay = math.log(target) / fast_decay_pct
-        min_decay = math.log(target) / slow_decay_pct
+        max_decay = math.log(target + 1e-10) / fast_decay_pct
+        min_decay = math.log(target + 1e-10) / slow_decay_pct
         deltas = torch.linspace(min_decay, max_decay, d_model)[None, None]
         self.register("deltas", deltas, lr=modulation_lr)
 
     def forward(self, t, x):
         if self.modulate:
-            decay = torch.exp(-t * self.deltas.abs())
+            decay = torch.exp(-t * self.deltas.abs() + 1e-10)
             x = x * (decay + self.shift)
         return x
 
@@ -190,6 +191,8 @@ class HyenaFilter(OptimModule):
         z, t = self.pos_emb(L)
         h = self.implicit_filter(z)
         h = self.modulation(t, h)
+        # if self.normalized:
+        #     h = 
         return h
 
     def forward(self, x, L, k=None, bias=None, *args, **kwargs):
