@@ -3,8 +3,6 @@ Adapted from https://github.com/HazyResearch/safari/blob/02220c69d247e5473616cd0
 
 Simplified standalone version of Hyena: https://arxiv.org/abs/2302.10866, designed for quick experimentation.
 """
-
-
 import math
 import torch
 import torch.nn as nn

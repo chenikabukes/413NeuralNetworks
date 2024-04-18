@@ -1,20 +1,18 @@
 import torch
 from fastai.vision.all import *
-import pandas as pd
 import os, gc
 import numpy as np
 from sklearn.model_selection import KFold
 import random
-import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-from src.models.RNACNNTransformer import RNA_Model as Single_CNN_Transformer
-from src.models.Hyena import RNA_Transformer_Model as Hyena_Transformer_Model
-from src.models.Hyena import RNA_MLP_Model as Hyena_MLP_Model
-from src.models.MultiCNN import RNA_Model as Multi_CNN_Transformer
 from src.models.starter import RNA_Model as Starter
+from src.models.RNACNNTransformer import RNA_Model as Single_CNN_Transformer
+from src.models.MultiCNN import RNA_Model as Multi_CNN_Transformer
+from src.models.Hyena import RNA_MLP_Model as Hyena_MLP_Model
+from src.models.Hyena import RNA_Transformer_Model as Hyena_Transformer_Model
 import wandb
 import argparse
 from fastai.callback.wandb import *
@@ -104,9 +102,9 @@ elif args.model == 2:
 elif args.model == 3:
     model = Multi_CNN_Transformer()
 elif args.model == 4:
-    model = Hyena_Transformer_Model()
-elif args.model == 5:
     model = Hyena_MLP_Model()
+elif args.model == 5:
+    model = Hyena_Transformer_Model()
 model = model.to(device)
 checkpoint_name = f'{model.name()}_{datetime.now().strftime("%Y%m%d_%H%M")}.pth'
 cbs = [GradientClip(3.0), SaveModelCallback(monitor='valid_loss', fname=os.path.join(MODEL_WEIGHT_PATH, checkpoint_name))]
