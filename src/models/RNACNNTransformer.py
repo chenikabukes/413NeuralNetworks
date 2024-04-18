@@ -26,7 +26,7 @@ class RNA_Model(nn.Module):
         depth=12,
         head_size=32,
         dropout_rate=0.1,
-        cnn_out_channels=32,
+        cnn_out_channels=192,
         kernel_size=3,
         pool_size=None,
     ):

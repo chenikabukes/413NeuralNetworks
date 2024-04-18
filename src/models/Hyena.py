@@ -132,7 +132,7 @@ class HyenaFilter(OptimModule):
         emb_dim=3,  # dim of input to MLP, augments with positional encoding
         order=16,  # width of the implicit MLP
         fused_fft_conv=False,
-        seq_len=1024,
+        seq_len=768,
         lr=1e-3,
         lr_pos_emb=1e-5,
         dropout=0.0,
@@ -272,9 +272,9 @@ class RNA_Model(nn.Module):
     def __init__(
         self,
         num_embeddings=4,
-        emb_dim=256,
+        emb_dim=192,
         num_hyena_blocks=5,
-        l_max=1024,
+        l_max=768,
         order=2,
         filter_order=64,
         transformer_depth=1,

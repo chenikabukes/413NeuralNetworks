@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-from src.models.RNACNNTransformer import RNA_Model as Simgle_CNN_Transformer
+from src.models.RNACNNTransformer import RNA_Model as Single_CNN_Transformer
 from src.models.Hyena import RNA_Model as RNA_HyenaModel
 from src.models.MultiCNN import RNA_Model as Multi_CNN_Transformer
 from src.models.starter import RNA_Model as Starter
@@ -98,7 +98,7 @@ model = None
 if args.model == 1:
     model = Starter()
 elif args.model == 2:
-    model = Simgle_CNN_Transformer()
+    model = Single_CNN_Transformer()
 elif args.model == 3:
     model = Multi_CNN_Transformer()
 elif args.model == 4:
@@ -139,6 +139,7 @@ class MAE(Metric):
         x,y = torch.cat(self.x,0),torch.cat(self.y,0)
         loss = F.l1_loss(x, y, reduction='none')
         loss = loss[~torch.isnan(loss)].mean()
+        print(loss)
         return loss
 
 
