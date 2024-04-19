@@ -35,23 +35,19 @@ class RNA_Model(nn.Module):
         super().__init__()
         self.emb = nn.Embedding(num_embeddings, emb_dim)
         self.pos_enc = SinusoidalPosEmb(emb_dim)
-
-        # Adjustable CNN layers for feature extraction
-        cnn_layers_list = [
-            nn.Conv1d(
+        
+        for i in range (cnn_layers):
+            self.cnn = nn.Sequential(
+                nn.Conv1d(
                 emb_dim if i == 0 else cnn_out_channels,
                 cnn_out_channels,
                 kernel_size,
                 padding=kernel_size // 2,
+                ),
+                nn.ReLU(),
+                nn.BatchNorm1d(cnn_out_channels),
+                nn.Dropout(dropout_rate)
             )
-            for i in range(cnn_layers)
-        ]
-        self.cnn = nn.Sequential(
-            *cnn_layers_list,
-            nn.ReLU(),
-            nn.BatchNorm1d(cnn_out_channels),
-            nn.Dropout(dropout_rate)
-        )
 
         # Optional pooling layer
         self.pool = nn.AdaptiveMaxPool1d(pool_size) if pool_size else nn.Identity()

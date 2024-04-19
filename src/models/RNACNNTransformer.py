@@ -28,7 +28,7 @@ class RNA_Model(nn.Module):
         dropout_rate=0.1,
         cnn_out_channels=192,
         kernel_size=3,
-        pool_size=None,
+        pool_size=96,
     ):
         super().__init__()
         self.emb = nn.Embedding(4, dim)
