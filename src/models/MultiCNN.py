@@ -43,29 +43,18 @@ class RNA_Model(nn.Module):
             kernel_size,
             padding=kernel_size // 2,
             ),
-            nn.ReLU(),
-            nn.BatchNorm1d(cnn_out_channels),
-            nn.Dropout(dropout_rate),
-
             nn.Conv1d(
             emb_dim,
             cnn_out_channels,
             kernel_size,
             padding=kernel_size // 2,
             ),
-            nn.ReLU(),
-            nn.BatchNorm1d(cnn_out_channels),
-            nn.Dropout(dropout_rate),
-
             nn.Conv1d(
             emb_dim,
             cnn_out_channels,
             kernel_size,
             padding=kernel_size // 2,
             ),
-            nn.ReLU(),
-            nn.BatchNorm1d(cnn_out_channels),
-            nn.Dropout(dropout_rate)
         )
 
         # Optional pooling layer
