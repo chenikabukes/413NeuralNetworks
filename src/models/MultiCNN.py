@@ -36,18 +36,37 @@ class RNA_Model(nn.Module):
         self.emb = nn.Embedding(num_embeddings, emb_dim)
         self.pos_enc = SinusoidalPosEmb(emb_dim)
         
-        for i in range (cnn_layers):
-            self.cnn = nn.Sequential(
-                nn.Conv1d(
-                emb_dim if i == 0 else cnn_out_channels,
-                cnn_out_channels,
-                kernel_size,
-                padding=kernel_size // 2,
-                ),
-                nn.ReLU(),
-                nn.BatchNorm1d(cnn_out_channels),
-                nn.Dropout(dropout_rate)
-            )
+        self.cnn_layers = nn.Sequential(
+            nn.Conv1d(
+            emb_dim,
+            cnn_out_channels,
+            kernel_size,
+            padding=kernel_size // 2,
+            ),
+            nn.ReLU(),
+            nn.BatchNorm1d(cnn_out_channels),
+            nn.Dropout(dropout_rate),
+
+            nn.Conv1d(
+            emb_dim,
+            cnn_out_channels,
+            kernel_size,
+            padding=kernel_size // 2,
+            ),
+            nn.ReLU(),
+            nn.BatchNorm1d(cnn_out_channels),
+            nn.Dropout(dropout_rate),
+
+            nn.Conv1d(
+            emb_dim,
+            cnn_out_channels,
+            kernel_size,
+            padding=kernel_size // 2,
+            ),
+            nn.ReLU(),
+            nn.BatchNorm1d(cnn_out_channels),
+            nn.Dropout(dropout_rate)
+        )
 
         # Optional pooling layer
         self.pool = nn.AdaptiveMaxPool1d(pool_size) if pool_size else nn.Identity()
@@ -80,7 +99,7 @@ class RNA_Model(nn.Module):
         x += pos
 
         x = x.permute(0, 2, 1)  # (batch, channels, length)
-        x = self.cnn(x)
+        x = self.cnn_layers(x)
         x = self.pool(x)
 
         x = x.permute(0, 2, 1)  # (batch, length, channels)
