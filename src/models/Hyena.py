@@ -299,67 +299,6 @@ class Mlp(nn.Module):
         return y if not self.return_residual else (y, x)
 
 
-class RNA_Transformer_Model(nn.Module):
-    def __init__(
-        self,
-        num_embeddings=4,
-        emb_dim=192,
-        l_max=768,
-        order=2,
-        filter_order=64,
-        head_size=32,
-        dropout_rate=0.1,
-        depth=12,
-    ):
-        super().__init__()
-        self.emb = nn.Embedding(num_embeddings, emb_dim)
-        self.pos_enc = SinusoidalPosEmb(emb_dim)
-
-        # Initialize a Hyena Operator
-        self.hyena_operator = HyenaOperator(d_model=emb_dim, 
-                                            l_max=l_max, order=order, 
-                                            filter_order=filter_order)
-
-        self.transformer = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(
-                d_model=emb_dim,
-                nhead=emb_dim // head_size,
-                dim_feedforward=4 * emb_dim,
-                dropout=dropout_rate,
-                activation="gelu",
-                batch_first=True,
-                norm_first=True,
-            ),
-            num_layers=depth,
-        )
-
-        self.drop_out = nn.Dropout(0.1)
-        self.proj_out = nn.Linear(
-            emb_dim, 2
-        )  # Output dim is 2 for reactivity prediction
-
-    def forward(self, x0):
-        mask = x0["mask"]
-        Lmax = mask.sum(-1).max()
-        mask = mask[:, :Lmax].bool()
-        x = x0["seq"][:, :Lmax]
-
-        x = self.emb(x)
-        pos = self.pos_enc(torch.arange(Lmax, device=x.device).unsqueeze(0))
-        x += pos
-
-        x = self.hyena_operator(x)
-        x = self.transformer(x)
-
-        x = self.drop_out(x)
-        x = self.proj_out(x)
-        return x
-
-    @staticmethod
-    def name() -> str:
-        return "<Hyena Transformer Model>"
-
-
 class RNA_MLP_Model(nn.Module):
     def __init__(
         self,
@@ -373,12 +312,12 @@ class RNA_MLP_Model(nn.Module):
         self.emb = nn.Embedding(num_embeddings, emb_dim)
         self.pos_enc = SinusoidalPosEmb(emb_dim)
 
+        self.mlp_layer = Mlp(emb_dim)
+
         # Initialize a Hyena Operator
         self.hyena_operator = HyenaOperator(d_model=emb_dim, 
                                             l_max=l_max, order=order, 
                                             filter_order=filter_order)
-
-        self.mlp_layer = Mlp(emb_dim)
 
         self.drop_out = nn.Dropout(0.1)
         self.proj_out = nn.Linear(
@@ -395,8 +334,9 @@ class RNA_MLP_Model(nn.Module):
         pos = self.pos_enc(torch.arange(Lmax, device=x.device).unsqueeze(0))
         x += pos
 
-        x = self.hyena_operator(x)
         x = self.mlp_layer(x)
+
+        x = self.hyena_operator(x)
 
         x = self.drop_out(x)
         x = self.proj_out(x)
