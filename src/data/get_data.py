@@ -7,9 +7,6 @@ import subprocess
 import pandas as pd
 import numpy as np
 
-# Set the path to the dataset directory
-# dataset_dir = "/h/u6/c4/05/zha11021/CSC413/413NeuralNetworks/data"
-# dataset_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + 'data')
 
 # Optional Downloads with default options set to True
 file_download_flags = {
