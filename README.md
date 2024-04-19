@@ -24,7 +24,7 @@ We plan to compare three models, including a novel hybrid CNN-Transformer model,
 #### High-Level Intuition
 - The baseline model serves as a starting point with Stanford's initial setup.
 - Proposed Model 1 combines CNNs for local pattern recognition and transformers for global context, aiming to deliver the most comprehensive analysis.
-- Proposed Model 2 aims to leverage the computation efficiency of the Hyena operator to replace transformers while still utilizing long-range dependices of RNA sequences. 
+- Proposed Model 2 aims to leverage the computation efficiency of the Hyena operator to replace transformers while still utilizing long-range dependices of RNA sequences.
 
 ### Ethical Considerations
 The dataset does not contain personal identifiers, minimizing ethical concerns. However, the project underscores the necessity of laboratory validation for any computational predictions, ensuring responsible use of the technology in medical research.
@@ -35,14 +35,14 @@ This project aims to bridge a significant gap in RNA-based drug discovery, lever
 ## Getting Started
 To get started, first download the data using the following sequence
 ```
-(Insert how to download data)
+python3 src/data/get_train_data.py
 ```
 
 To run the baseline model, execute the following command:
 ```
 srun -p csc413 --gres gpu python3 -u fastai_script.py --model 1
 ```
-Include the arg `--wandb` to log the run. 
+Include the arg `--wandb` to log the run.
 
 Choose a model through the `--model` arg:
 1. Basline Transformer
